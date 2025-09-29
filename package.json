@@ -1,0 +1,27 @@
+{
+  "name": "asbv_pc",
+  "version": "1.0.0",
+  "type": "module",
+  "description": "",
+  "main": "serverWs.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "dotenv": "^17.2.2",
+    "puppeteer": "^24.22.2",
+    "ws": "^8.18.3"
+  },
+  "bin": "serverWs.js",
+  "assets": [
+    "a1.js",
+    "IA.js",
+    "serverWs.js"
+  ],
+  "targets": [
+    "node18-win-x64"
+  ]
+}
