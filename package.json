@@ -11,17 +11,16 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
-    "dotenv": "^17.2.2",
-    "puppeteer": "^24.22.2",
+    "dotenv": "^17.2.3",
+    "puppeteer": "^24.22.3",
+    "qrcode-terminal": "^0.12.0",
+    "whatsapp-web.js": "^1.34.1",
     "ws": "^8.18.3"
   },
-  "bin": "serverWs.js",
-  "assets": [
-    "a1.js",
-    "IA.js",
-    "serverWs.js"
-  ],
+  "overrides": {
+    "puppeteer": "^24.22.3"
+  },
   "targets": [
-    "node18-win-x64"
+    "node20-win-x64"
   ]
 }

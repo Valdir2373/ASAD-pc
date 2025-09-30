@@ -1,3 +1,2 @@
-import { start } from "./server/serverWs.js";
-
-start();
+import zapServer from "./app/whatsapp/WhatsApp.js";
+zapServer.initialize();

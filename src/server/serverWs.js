@@ -1,8 +1,13 @@
 import { WebSocket } from "ws";
+import { config } from "dotenv";
 import { keepServerConnected } from "./serverForever.js";
 import { ManagerMessageClient } from "../app/ManagerMessageClient.js";
 
-export const key = process.env.KEY || "NOT KEY FOUND";
+config();
+
+export const key = process.env.KEY;
+
+if (!key) throw new Error("KEY NOT FOUND");
 
 const WS_URL = "wss://asbv.onrender.com";
 const message = {
@@ -12,18 +17,26 @@ const message = {
   idUser: "123",
 };
 
-const ws = new WebSocket(WS_URL);
-
-/**
- * @ManagerMessageClient {managerMessageClient}
- */
+let ws;
 const managerMessageClient = new ManagerMessageClient();
 
-export function start() {
+function connectWebSocket() {
+  if (
+    ws &&
+    (ws.readyState === WebSocket.OPEN || ws.readyState === WebSocket.CONNECTING)
+  ) {
+    console.log("⚠️ Conexão WS já ativa ou em processo. Pulando reconexão.");
+    return;
+  }
+
+  console.log(`🔌 Tentando conectar ao WebSocket: ${WS_URL}`);
+
+  ws = new WebSocket(WS_URL);
+
   ws.on("open", async function open() {
     console.log("✅ Conectado ao servidor WebSocket");
     ws.send(JSON.stringify(message));
-    console.log("📤 Mensagem enviada:", message);
+    console.log("📤 Mensagem de identificação enviada no open:", message);
     await keepServerConnected();
   });
 
@@ -31,18 +44,26 @@ export function start() {
     console.log("📩 Recebido do servidor:", data.toString());
     try {
       const dataMessage = JSON.parse(data);
-      if (dataMessage.action && !dataMessage.response) {
-        await managerMessageClient.execute(dataMessage);
-      } else if (dataMessage.action && dataMessage.response) {
-        const response = await managerMessageClient.execute(dataMessage);
-        console.log(response);
+      if (dataMessage.action) {
+        let response = await managerMessageClient.execute(dataMessage);
 
-        ws.send(
-          JSON.stringify({ message: "sendUser", messageToUser: response, key })
-        );
+        if (dataMessage.response) {
+          console.log("Resposta do Manager:", response);
+          ws.send(
+            JSON.stringify({
+              message: "sendUser",
+              messageToUser: response,
+              key,
+            })
+          );
+        } else {
+          console.log(
+            "Ação do Manager executada (sem envio de resposta ao WS)."
+          );
+        }
       }
     } catch (e) {
-      console.error(e);
+      console.error("Erro ao processar mensagem WS:", e);
     }
   });
 
@@ -50,7 +71,32 @@ export function start() {
     console.error("❌ Erro WebSocket:", err.message);
   });
 
-  ws.on("close", function close(code, reason) {
+  ws.on("close", async function close(code, reason) {
     console.log(`🔌 Conexão fechada. Código: ${code}, Motivo: ${reason}`);
+
+    if (reason.toString() === "Duplicate machine") start();
+
+    const RECONNECT_INTERVAL = 5000;
+    console.log(`🔄 Tentando reconectar em ${RECONNECT_INTERVAL / 1000}s...`);
+    setTimeout(connectWebSocket, RECONNECT_INTERVAL);
   });
+}
+
+connectWebSocket();
+
+export async function start() {
+  await fetch("https://asbv.onrender.com/clear-machines", {
+    method: "GET",
+    headers: {
+      key,
+    },
+  });
+
+  console.log("Comando /clear-machines enviado.");
+
+  if (ws && ws.readyState === WebSocket.OPEN) {
+    ws.send(JSON.stringify(message));
+  }
+
+  return "Lógica de inicialização executada.";
 }
